@@ -6,7 +6,7 @@
 
 Even though JavaScript is single-threaded, IO in Node.js can happen in parallel due to its async nature. AVA takes advantage of this and runs your tests concurrently, which is especially beneficial for IO heavy tests. In addition, test files are run in parallel as separate processes, giving you even better performance and an isolated environment for each test file. [Switching](https://github.com/sindresorhus/pageres/commit/663be15acb3dd2eb0f71b1956ef28c2cd3fdeed0) from Mocha to AVA in Pageres brought the test time down from 31 to 11 seconds. Having tests run concurrently forces you to write atomic tests, meaning tests don't depend on global state or the state of other tests, which is a great thing!
 
-![](media/screenshot-mini-reporter.gif)
+![](media/mini-reporter.gif)
 
 *Read our [contributing guide](contributing.md) if you're looking to contribute (issues/PRs/etc).*
 
@@ -88,13 +88,13 @@ Your `package.json` will then look like this:
 
 ```json
 {
-  "name": "awesome-package",
-  "scripts": {
-    "test": "ava"
-  },
-  "devDependencies": {
-    "ava": "^0.18.0"
-  }
+	"name": "awesome-package",
+	"scripts": {
+		"test": "ava"
+	},
+	"devDependencies": {
+		"ava": "^0.19.0"
+	}
 }
 ```
 
@@ -212,13 +212,13 @@ $ node --inspect node_modules/ava/profile.js some/test/file.js
 
 The mini-reporter is the default reporter.
 
-<img src="media/screenshot-mini-reporter.gif" width="460">
+<img src="media/mini-reporter.gif" width="460">
 
 ### Verbose reporter
 
 Use the `--verbose` flag to enable the verbose reporter. This is always used in CI environments unless the [TAP reporter](#tap-reporter) is enabled.
 
-<img src="media/screenshot.png" width="150">
+<img src="media/verbose-reporter.png" width="294">
 
 ### TAP reporter
 
@@ -228,7 +228,7 @@ AVA supports the TAP format and thus is compatible with [any TAP reporter](https
 $ ava --tap | tap-nyan
 ```
 
-<img src="media/tap-output.png" width="398">
+<img src="media/tap-reporter.png" width="420">
 
 Please note that the TAP reporter is unavailable when using [watch mode](#watch-it).
 
@@ -249,29 +249,29 @@ All of the CLI options can be configured in the `ava` section of your `package.j
 
 ```json
 {
-  "ava": {
-    "files": [
-      "my-test-folder/*.js",
-      "!**/not-this-file.js"
-    ],
-    "source": [
-      "**/*.{js,jsx}",
-      "!dist/**/*"
-    ],
-    "match": [
-      "*oo",
-      "!foo"
-    ],
-    "concurrency": 5,
-    "failFast": true,
-    "failWithoutAssertions": false,
-    "tap": true,
-    "powerAssert": false,
-    "require": [
-      "babel-register"
-    ],
-    "babel": "inherit"
-  }
+	"ava": {
+		"files": [
+			"my-test-folder/*.js",
+			"!**/not-this-file.js"
+		],
+		"source": [
+			"**/*.{js,jsx}",
+			"!dist/**/*"
+		],
+		"match": [
+			"*oo",
+			"!foo"
+		],
+		"concurrency": 5,
+		"failFast": true,
+		"failWithoutAssertions": false,
+		"tap": true,
+		"powerAssert": false,
+		"require": [
+			"babel-register"
+		],
+		"babel": "inherit"
+	}
 }
 ```
 
@@ -376,9 +376,7 @@ test(t => {
 
 ### Running tests serially
 
-By default tests are run concurrently, which is awesome. Sometimes though you have to write tests that cannot run concurrently.
-
-In these rare cases you can use the `.serial` modifier. It will force those tests to run serially *before* the concurrent ones.
+Tests are run concurrently by default, however, sometimes you have to write tests that cannot run concurrently. In these rare cases you can use the `.serial` modifier. It will force those tests to run serially *before* the concurrent ones.
 
 ```js
 test.serial(t => {
@@ -696,10 +694,10 @@ The corresponding Babel config for AVA's setup is as follows:
 
 ```json
 {
-  "presets": [
-    "@ava/stage-4",
-    "@ava/transform-test-files"
-  ]
+	"presets": [
+		"@ava/stage-4",
+		"@ava/transform-test-files"
+	]
 }
 ```
 
@@ -707,15 +705,15 @@ You can customize how AVA transpiles the test files through the `babel` option i
 
 ```json
 {
-  "ava": {
-     "babel": {
-       "presets": [
-          "es2015",
-          "stage-0",
-          "react"
-       ]
-     }
-  }
+	"ava": {
+		 "babel": {
+			 "presets": [
+					"es2015",
+					"stage-0",
+					"react"
+			 ]
+		 }
+	}
 }
 ```
 
@@ -723,16 +721,16 @@ You can also use the special `"inherit"` keyword. This makes AVA defer to the Ba
 
 ```json
 {
-  "babel": {
-    "presets": [
-      "es2015",
-      "stage-0",
-      "react"
-    ]
-  },
-  "ava": {
-    "babel": "inherit"
-  }
+	"babel": {
+		"presets": [
+			"es2015",
+			"stage-0",
+			"react"
+		]
+	},
+	"ava": {
+		"babel": "inherit"
+	}
 }
 ```
 
@@ -867,7 +865,7 @@ Should contain the actual test.
 
 Type: `object`
 
-The execution object of a particular test. Each test implementation receives a different object. Contains the [assertions](#assertions) as well as `.plan(count)` and `.end()` methods. `t.context` can contain shared state from `beforeEach` hooks.
+The execution object of a particular test. Each test implementation receives a different object. Contains the [assertions](#assertions) as well as `.plan(count)` and `.end()` methods. `t.context` can contain shared state from `beforeEach` hooks. `t.title` returns the test's title.
 
 ###### `t.plan(count)`
 
@@ -923,11 +921,7 @@ Assert that `value` is not the same as `expected`. This is based on [`Object.is(
 
 ### `.deepEqual(value, expected, [message])`
 
-Assert that `value` is deeply equal to `expected`. This is based on [Lodash's `isEqual()`](https://lodash.com/docs/4.17.4#isEqual):
-
-> Performs a deep comparison between two values to determine if they are equivalent.
->
-> *Note*: This method supports comparing arrays, array buffers, booleans, date objects, error objects, maps, numbers, `Object` objects, regexes, sets, strings, symbols, and typed arrays. `Object` objects are compared by their own, not inherited, enumerable properties. Functions and DOM nodes are compared by strict equality, i.e. `===`.
+Assert that `value` is deeply equal to `expected`. See [Concordance](https://github.com/concordancejs/concordance) for details. Works with [React elements and `react-test-renderer`](https://github.com/concordancejs/react).
 
 ### `.notDeepEqual(value, expected, [message])`
 
@@ -998,15 +992,14 @@ Assert that `contents` does not match `regex`.
 
 Assert that `error` is falsy.
 
-### `.snapshot(contents, [message])`
+### `.snapshot(expected, [message])`
+### `.snapshot(expected, [options], [message])`
 
-Make a snapshot of the stringified `contents`.
+Compares the `expected` value with a previously recorded snapshot. Snapshots are stored for each test, so ensure you give your tests unique titles. Alternatively pass an `options` object to select a specific snapshot, for instance `{id: 'my snapshot'}`.
 
 ## Snapshot testing
 
-Snapshot testing comes as another kind of assertion and uses [jest-snapshot](https://facebook.github.io/jest/blog/2016/07/27/jest-14.html) under the hood.
-
-When used with React, it looks very similar to Jest:
+AVA supports snapshot testing, [as introduced by Jest](https://facebook.github.io/jest/docs/snapshot-testing.html), through its [Assertions](#assertions) interface. You can snapshot any value as well as React elements:
 
 ```js
 // Your component
@@ -1019,40 +1012,34 @@ export default HelloWorld;
 // Your test
 import test from 'ava';
 import render from 'react-test-renderer';
-
 import HelloWorld from '.';
 
 test('HelloWorld component', t => {
-	const tree = render.create(<HelloWorld />).toJSON();
+	const tree = render.create(<HelloWorld/>).toJSON();
 	t.snapshot(tree);
 });
 ```
 
-The first time you run this test, a snapshot file will be created in `__snapshots__` folder looking something like this:
+[Try it out in this example project.](https://github.com/avajs/ava-snapshot-example)
 
-```js
-exports[`HelloWorld component 1`] = `
-<h1>
-	Hello World...!
-</h1>
-`;
-```
+Snapshots are stored alongside your test files. If your tests are in a `test` or `tests` folder the snapshots will be stored in a `snapshots` folder. If your tests are in a `__tests__` folder then they they'll be stored in a `__snapshots__` folder.
 
-These snapshots should be committed together with your code so that everyone on the team shares current state of the app.
+Say you have `~/project/test/main.js` which contains snapshot assertions. AVA will create two files:
 
-Every time you run this test afterwards, it will check if the component render has changed. If it did, it will fail the test.
+* `~/project/test/snapshots/main.js.snap`
+* `~/project/test/snapshots/main.js.md`
 
-<img src="media/snapshot-testing.png" width="814">
+The first file contains the actual snapshot and is required for future comparisons. The second file contains your *snapshot report*. It's regenerated when you update your snapshots. If you commit it to source control you can diff it to see the changes to your snapshot.
 
-Then you will have the choice to check your code - and if the change was intentional, you can use the `--update-snapshots` (or `-u`) flag to update the snapshots into their new version.
+AVA will show why your snapshot assertion failed:
 
-That might look like this:
+<img src="media/snapshot-testing.png" width="1048">
+
+You can then check your code. If the change was intentional you can use the `--update-snapshots` (or `-u`) flag to update the snapshots:
 
 ```console
 $ ava --update-snapshots
 ```
-
-Note that snapshots can be used for much more than just testing components - you can equally well test any other (data) structure that you can stringify.
 
 ### Skipping assertions
 

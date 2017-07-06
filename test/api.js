@@ -1033,18 +1033,34 @@ function generatePassDebugIntegrationTests(execArgv) {
 	});
 }
 
+function generatePassInspectIntegrationTests(execArgv) {
+	test(`pass ${execArgv.join(' ')} to fork`, t => {
+		const api = apiCreator({testOnlyExecArgv: execArgv});
+		return api.run([path.join(__dirname, 'fixture/inspect-arg.js')])
+			.then(result => {
+				t.is(result.passCount, 1);
+			});
+	});
+}
+
 generatePassDebugTests(['--debug=0'], -1);
 generatePassDebugTests(['--debug'], -1);
 
 generatePassDebugTests(['--inspect=0'], 0);
 generatePassDebugTests(['--inspect'], 0);
 
+// --inspect takes precedence
 generatePassDebugTests(['--inspect=0', '--debug-brk'], 0);
 generatePassDebugTests(['--inspect', '--debug-brk'], 0);
 
+// --inspect takes precedence, though --debug-brk is still passed to the worker
 generatePassDebugTests(['--debug-brk', '--inspect=0'], 1);
 generatePassDebugTests(['--debug-brk', '--inspect'], 1);
 
-// --inspect cannot be tested because released node doesn't support it
-generatePassDebugIntegrationTests(['--debug=0']);
-generatePassDebugIntegrationTests(['--debug']);
+if (Number(process.version.split('.')[0].slice(1)) < 8) {
+	generatePassDebugIntegrationTests(['--debug=0']);
+	generatePassDebugIntegrationTests(['--debug']);
+} else {
+	generatePassInspectIntegrationTests(['--inspect=9229']);
+	generatePassInspectIntegrationTests(['--inspect']);
+}

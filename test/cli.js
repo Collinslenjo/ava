@@ -7,8 +7,6 @@ const getStream = require('get-stream');
 const figures = require('figures');
 const makeDir = require('make-dir');
 const touch = require('touch');
-const proxyquire = require('proxyquire');
-const sinon = require('sinon');
 const uniqueTempDir = require('unique-temp-dir');
 const execa = require('execa');
 const stripAnsi = require('strip-ansi');
@@ -28,16 +26,12 @@ function execCli(args, opts, cb) {
 		env = opts.env || {};
 	}
 
-	if (process.env.AVA_APPVEYOR) {
-		env.AVA_APPVEYOR = 1;
-	}
-
 	let child;
 	let stdout;
 	let stderr;
 
 	const processPromise = new Promise(resolve => {
-		child = childProcess.spawn(process.execPath, [path.relative(dirname, cliPath)].concat(args), {
+		child = childProcess.spawn(process.execPath, [cliPath].concat(args), {
 			cwd: dirname,
 			env,
 			stdio: [null, 'pipe', 'pipe']
@@ -313,6 +307,60 @@ test('watcher reruns test files when source dependencies change', t => {
 	});
 });
 
+test('watcher does not rerun test files when they write snapshot files', t => {
+	let killed = false;
+
+	const child = execCli(['--verbose', '--watch', '--update-snapshots', 'test.js'], {dirname: 'fixture/snapshots'}, err => {
+		t.ok(killed);
+		t.ifError(err);
+		t.end();
+	});
+
+	let buffer = '';
+	let passedFirst = false;
+	child.stderr.on('data', str => {
+		buffer += str;
+		if (/2 tests passed/.test(buffer) && !passedFirst) {
+			buffer = '';
+			passedFirst = true;
+			setTimeout(() => {
+				child.kill();
+				killed = true;
+			}, 500);
+		} else if (passedFirst && !killed) {
+			t.is(buffer.replace(/\s/g, ''), '');
+		}
+	});
+});
+
+test('watcher reruns test files when snapshot dependencies change', t => {
+	let killed = false;
+
+	const child = execCli(['--verbose', '--watch', '--update-snapshots', 'test.js'], {dirname: 'fixture/snapshots'}, err => {
+		t.ok(killed);
+		t.ifError(err);
+		t.end();
+	});
+
+	let buffer = '';
+	let passedFirst = false;
+	child.stderr.on('data', str => {
+		buffer += str;
+		if (/2 tests passed/.test(buffer)) {
+			buffer = '';
+			if (passedFirst) {
+				child.kill();
+				killed = true;
+			} else {
+				passedFirst = true;
+				setTimeout(() => {
+					touch.sync(path.join(__dirname, 'fixture/snapshots/test.js.snap'));
+				}, 500);
+			}
+		}
+	});
+});
+
 test('`"tap": true` config is ignored when --watch is given', t => {
 	let killed = false;
 
@@ -425,33 +473,16 @@ test('should warn ava is required without the cli', t => {
 });
 
 test('prefers local version of ava', t => {
-	t.plan(1);
-
-	const stubModulePath = path.join(__dirname, '/fixture/empty');
-	const debugSpy = sinon.spy();
-	const resolveCwdStub = () => stubModulePath;
-
-	function debugStub() {
-		return message => {
-			let result = {
-				enabled: false
-			};
-
-			if (message) {
-				result = debugSpy(message);
-			}
-
-			return result;
-		};
-	}
-
-	proxyquire('../cli', {
-		debug: debugStub,
-		'resolve-cwd': resolveCwdStub
+	execCli('', {
+		dirname: 'fixture/local-bin',
+		env: {
+			DEBUG: 'ava'
+		}
+	}, (err, stdout, stderr) => {
+		t.ifError(err);
+		t.match(stderr, 'Using local install of AVA');
+		t.end();
 	});
-
-	t.ok(debugSpy.calledWith('Using local install of AVA'));
-	t.end();
 });
 
 test('use current working directory if `package.json` is not found', () => {
@@ -525,24 +556,126 @@ test('promise tests fail if event loop empties before they\'re resolved', t => {
 	});
 });
 
-test('snapshots work', t => {
-	try {
-		fs.unlinkSync(path.join(__dirname, 'fixture', 'snapshots', '__snapshots__', 'test.snap'));
-	} catch (err) {
-		if (err.code !== 'ENOENT') {
-			throw err;
+for (const obj of [
+	{type: 'colocated', rel: '', dir: ''},
+	{type: '__tests__', rel: '__tests__-dir', dir: '__tests__/__snapshots__'},
+	{type: 'test', rel: 'test-dir', dir: 'test/snapshots'},
+	{type: 'tests', rel: 'tests-dir', dir: 'tests/snapshots'}
+]) {
+	test(`snapshots work (${obj.type})`, t => {
+		const snapPath = path.join(__dirname, 'fixture', 'snapshots', obj.rel, obj.dir, 'test.js.snap');
+		try {
+			fs.unlinkSync(snapPath);
+		} catch (err) {
+			if (err.code !== 'ENOENT') {
+				throw err;
+			}
 		}
-	}
 
-	// Test should pass, and a snapshot gets written
-	execCli(['--update-snapshots', 'test.js'], {dirname: 'fixture/snapshots'}, err => {
-		t.ifError(err);
-
-		// Test should pass, and the snapshot gets used
-		execCli(['test.js'], {dirname: 'fixture/snapshots'}, err => {
+		const dirname = path.join('fixture/snapshots', obj.rel);
+		// Test should pass, and a snapshot gets written
+		execCli(['--update-snapshots'], {dirname}, err => {
 			t.ifError(err);
-			t.end();
+			t.true(fs.existsSync(snapPath));
+
+			// Test should pass, and the snapshot gets used
+			execCli([], {dirname}, err => {
+				t.ifError(err);
+				t.end();
+			});
 		});
+	});
+}
+
+test('appends to existing snapshots', t => {
+	const cliPath = require.resolve('../cli.js');
+	const avaPath = require.resolve('../');
+
+	const cwd = uniqueTempDir({create: true});
+	fs.writeFileSync(path.join(cwd, 'package.json'), '{}');
+
+	const initial = `import test from ${JSON.stringify(avaPath)}
+test('one', t => {
+	t.snapshot({one: true})
+})`;
+	fs.writeFileSync(path.join(cwd, 'test.js'), initial);
+
+	const run = () => execa(process.execPath, [cliPath, '--verbose', '--no-color'], {cwd, reject: false});
+	return run().then(result => {
+		t.match(result.stderr, /1 test passed/);
+
+		fs.writeFileSync(path.join(cwd, 'test.js'), `${initial}
+test('two', t => {
+	t.snapshot({two: true})
+})`);
+		return run();
+	}).then(result => {
+		t.match(result.stderr, /2 tests passed/);
+
+		fs.writeFileSync(path.join(cwd, 'test.js'), `${initial}
+test('two', t => {
+	t.snapshot({two: false})
+})`);
+
+		return run();
+	}).then(result => {
+		t.match(result.stderr, /1 test failed/);
+	});
+});
+
+test('outdated snapshot version is reported to the console', t => {
+	const snapPath = path.join(__dirname, 'fixture', 'snapshots', 'test.js.snap');
+	fs.writeFileSync(snapPath, Buffer.from([0x0A, 0x00, 0x00]));
+
+	execCli(['test.js'], {dirname: 'fixture/snapshots'}, (err, stdout, stderr) => {
+		t.ok(err);
+		t.match(stderr, /The snapshot file is v0, but only v1 is supported\./);
+		t.match(stderr, /File path:/);
+		t.match(stderr, snapPath);
+		t.match(stderr, /Please run AVA again with the .*--update-snapshots.* flag to upgrade\./);
+		t.end();
+	});
+});
+
+test('newer snapshot version is reported to the console', t => {
+	const snapPath = path.join(__dirname, 'fixture', 'snapshots', 'test.js.snap');
+	fs.writeFileSync(snapPath, Buffer.from([0x0A, 0xFF, 0xFF]));
+
+	execCli(['test.js'], {dirname: 'fixture/snapshots'}, (err, stdout, stderr) => {
+		t.ok(err);
+		t.match(stderr, /The snapshot file is v65535, but only v1 is supported\./);
+		t.match(stderr, /File path:/);
+		t.match(stderr, snapPath);
+		t.match(stderr, /You should upgrade AVA\./);
+		t.end();
+	});
+});
+
+test('snapshot corruption is reported to the console', t => {
+	const snapPath = path.join(__dirname, 'fixture', 'snapshots', 'test.js.snap');
+	fs.writeFileSync(snapPath, Buffer.from([0x0A, 0x01, 0x00]));
+
+	execCli(['test.js'], {dirname: 'fixture/snapshots'}, (err, stdout, stderr) => {
+		t.ok(err);
+		t.match(stderr, /The snapshot file is corrupted\./);
+		t.match(stderr, /File path:/);
+		t.match(stderr, snapPath);
+		t.match(stderr, /Please run AVA again with the .*--update-snapshots.* flag to recreate it\./);
+		t.end();
+	});
+});
+
+test('legacy snapshot files are reported to the console', t => {
+	const snapPath = path.join(__dirname, 'fixture', 'snapshots', 'test.js.snap');
+	fs.writeFileSync(snapPath, Buffer.from('// Jest Snapshot v1, https://goo.gl/fbAQLP\n'));
+
+	execCli(['test.js'], {dirname: 'fixture/snapshots'}, (err, stdout, stderr) => {
+		t.ok(err);
+		t.match(stderr, /The snapshot file was created with AVA 0\.19\. It's not supported by this AVA version\./);
+		t.match(stderr, /File path:/);
+		t.match(stderr, snapPath);
+		t.match(stderr, /Please run AVA again with the .*--update-snapshots.* flag to upgrade\./);
+		t.end();
 	});
 });
 

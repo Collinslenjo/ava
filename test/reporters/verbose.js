@@ -11,7 +11,6 @@ const beautifyStack = require('../../lib/beautify-stack');
 const colors = require('../../lib/colors');
 const VerboseReporter = require('../../lib/reporters/verbose');
 const compareLineOutput = require('../helper/compare-line-output');
-const formatSerializedError = require('../../lib/format-assert-error').formatSerializedError;
 const codeExcerpt = require('../../lib/code-excerpt');
 
 chalk.enabled = true;
@@ -377,7 +376,7 @@ test('results with errors', t => {
 	error1.statements = [];
 	error1.values = [
 		{label: 'actual:', formatted: JSON.stringify('abc')},
-		{lael: 'expected:', formatted: JSON.stringify('abd')}
+		{label: 'expected:', formatted: JSON.stringify('abd')}
 	];
 
 	const error2 = new Error('error two message');
@@ -388,7 +387,17 @@ test('results with errors', t => {
 	error2.statements = [];
 	error2.values = [
 		{label: 'actual:', formatted: JSON.stringify([1])},
-		{lael: 'expected:', formatted: JSON.stringify([2])}
+		{label: 'expected:', formatted: JSON.stringify([2])}
+	];
+
+	const error3 = new Error('error three message');
+	error3.stack = 'error message\nTest.fn (test.js:1:1)\n';
+	const err3Path = tempWrite.sync('b()');
+	error3.source = source(err3Path);
+	error3.avaAssertionError = true;
+	error3.statements = [];
+	error3.values = [
+		{label: 'error three message:', formatted: JSON.stringify([1])}
 	];
 
 	const reporter = createReporter({color: true});
@@ -400,6 +409,9 @@ test('results with errors', t => {
 	}, {
 		title: 'fail two',
 		error: error2
+	}, {
+		title: 'fail three',
+		error: error3
 	}];
 
 	const output = reporter.finish(runStatus);
@@ -414,9 +426,15 @@ test('results with errors', t => {
 		'',
 		/error one message/,
 		'',
-		indentString(formatSerializedError(error1), 2).split('\n'),
-		stackLineRegex,
-		compareLineOutput.SKIP_UNTIL_EMPTY_LINE,
+		'  actual:',
+		'',
+		'  "abc"',
+		'',
+		'  expected:',
+		'',
+		'  "abd"',
+		'',
+		stackLineRegex, compareLineOutput.SKIP_UNTIL_EMPTY_LINE,
 		'',
 		'',
 		'',
@@ -427,7 +445,25 @@ test('results with errors', t => {
 		'',
 		/error two message/,
 		'',
-		indentString(formatSerializedError(error2), 2).split('\n')
+		'  actual:',
+		'',
+		'  [1]',
+		'',
+		'  expected:',
+		'',
+		'  [2]',
+		'',
+		'',
+		'',
+		'  ' + chalk.bold.white('fail three'),
+		'  ' + chalk.grey(`${error3.source.file}:${error3.source.line}`),
+		'',
+		indentString(codeExcerpt(error3.source), 2).split('\n'),
+		'',
+		'  error three message:',
+		'',
+		'  [1]',
+		''
 	]));
 	t.end();
 });
@@ -439,7 +475,7 @@ test('results with errors and disabled code excerpts', t => {
 	error1.statements = [];
 	error1.values = [
 		{label: 'actual:', formatted: JSON.stringify('abc')},
-		{lael: 'expected:', formatted: JSON.stringify('abd')}
+		{label: 'expected:', formatted: JSON.stringify('abd')}
 	];
 
 	const error2 = new Error('error two message');
@@ -450,7 +486,7 @@ test('results with errors and disabled code excerpts', t => {
 	error2.statements = [];
 	error2.values = [
 		{label: 'actual:', formatted: JSON.stringify([1])},
-		{lael: 'expected:', formatted: JSON.stringify([2])}
+		{label: 'expected:', formatted: JSON.stringify([2])}
 	];
 
 	const reporter = createReporter({color: true});
@@ -473,9 +509,15 @@ test('results with errors and disabled code excerpts', t => {
 		'',
 		/error one message/,
 		'',
-		indentString(formatSerializedError(error1), 2).split('\n'),
-		stackLineRegex,
-		compareLineOutput.SKIP_UNTIL_EMPTY_LINE,
+		'  actual:',
+		'',
+		'  "abc"',
+		'',
+		'  expected:',
+		'',
+		'  "abd"',
+		'',
+		stackLineRegex, compareLineOutput.SKIP_UNTIL_EMPTY_LINE,
 		'',
 		'',
 		'',
@@ -486,7 +528,14 @@ test('results with errors and disabled code excerpts', t => {
 		'',
 		/error two message/,
 		'',
-		indentString(formatSerializedError(error2), 2).split('\n')
+		'  actual:',
+		'',
+		'  [1]',
+		'',
+		'  expected:',
+		'',
+		'  [2]',
+		''
 	]));
 	t.end();
 });
@@ -500,7 +549,7 @@ test('results with errors and disabled code excerpts', t => {
 	error1.statements = [];
 	error1.values = [
 		{label: 'actual:', formatted: JSON.stringify('abc')},
-		{lael: 'expected:', formatted: JSON.stringify('abd')}
+		{label: 'expected:', formatted: JSON.stringify('abd')}
 	];
 
 	const error2 = new Error('error two message');
@@ -511,7 +560,7 @@ test('results with errors and disabled code excerpts', t => {
 	error2.statements = [];
 	error2.values = [
 		{label: 'actual:', formatted: JSON.stringify([1])},
-		{lael: 'expected:', formatted: JSON.stringify([2])}
+		{label: 'expected:', formatted: JSON.stringify([2])}
 	];
 
 	const reporter = createReporter({color: true});
@@ -535,9 +584,15 @@ test('results with errors and disabled code excerpts', t => {
 		'',
 		/error one message/,
 		'',
-		indentString(formatSerializedError(error1), 2).split('\n'),
-		stackLineRegex,
-		compareLineOutput.SKIP_UNTIL_EMPTY_LINE,
+		'  actual:',
+		'',
+		'  "abc"',
+		'',
+		'  expected:',
+		'',
+		'  "abd"',
+		'',
+		stackLineRegex, compareLineOutput.SKIP_UNTIL_EMPTY_LINE,
 		'',
 		'',
 		'',
@@ -548,7 +603,14 @@ test('results with errors and disabled code excerpts', t => {
 		'',
 		/error two message/,
 		'',
-		indentString(formatSerializedError(error2), 2).split('\n')
+		'  actual:',
+		'',
+		'  [1]',
+		'',
+		'  expected:',
+		'',
+		'  [2]',
+		''
 	]));
 	t.end();
 });
@@ -565,13 +627,11 @@ test('results when fail-fast is enabled', t => {
 
 	const output = reporter.finish(runStatus);
 	const expectedOutput = [
-		'',
-		'  ' + chalk.red('1 test failed') + time,
-		'',
-		'',
-		'  ' + colors.information('`--fail-fast` is on. At least 1 test was skipped.'),
-		''
-	].join('\n');
+		'\n  ' + chalk.red('1 test failed') + time,
+		'\n',
+		'\n  ' + colors.information('`--fail-fast` is on. At least 1 test was skipped.'),
+		'\n'
+	].join('');
 
 	t.is(output, expectedOutput);
 	t.end();
@@ -589,13 +649,11 @@ test('results when fail-fast is enabled with multiple skipped tests', t => {
 
 	const output = reporter.finish(runStatus);
 	const expectedOutput = [
-		'',
-		'  ' + chalk.red('1 test failed') + time,
-		'',
-		'',
-		'  ' + colors.information('`--fail-fast` is on. At least 2 tests were skipped.'),
-		''
-	].join('\n');
+		'\n  ' + chalk.red('1 test failed') + time,
+		'\n',
+		'\n  ' + colors.information('`--fail-fast` is on. At least 2 tests were skipped.'),
+		'\n'
+	].join('');
 
 	t.is(output, expectedOutput);
 	t.end();
@@ -654,7 +712,8 @@ test('results with 1 previous failure', t => {
 		'',
 		'  ' + colors.pass('1 test passed') + time,
 		'  ' + colors.error('1 uncaught exception'),
-		'  ' + colors.error('1 previous failure in test files that were not rerun')
+		'  ' + colors.error('1 previous failure in test files that were not rerun'),
+		''
 	]);
 	t.end();
 });
@@ -672,7 +731,8 @@ test('results with 2 previous failures', t => {
 		'',
 		'  ' + colors.pass('1 test passed') + time,
 		'  ' + colors.error('1 uncaught exception'),
-		'  ' + colors.error('2 previous failures in test files that were not rerun')
+		'  ' + colors.error('2 previous failures in test files that were not rerun'),
+		''
 	]);
 	t.end();
 });
@@ -736,13 +796,11 @@ test('results when hasExclusive is enabled, but there is one remaining tests', t
 
 	const output = reporter.finish(runStatus);
 	const expectedOutput = [
-		'',
-		'  ' + chalk.green('1 test passed') + time,
-		'',
-		'',
-		'  ' + colors.information('The .only() modifier is used in some tests. 1 test was not run'),
-		''
-	].join('\n');
+		'\n  ' + chalk.green('1 test passed') + time,
+		'\n',
+		'\n  ' + colors.information('The .only() modifier is used in some tests. 1 test was not run'),
+		'\n'
+	].join('');
 
 	t.is(output, expectedOutput);
 	t.end();
@@ -759,13 +817,11 @@ test('results when hasExclusive is enabled, but there are multiple remaining tes
 
 	const output = reporter.finish(runStatus);
 	const expectedOutput = [
-		'',
-		'  ' + chalk.green('1 test passed') + time,
-		'',
-		'',
-		'  ' + colors.information('The .only() modifier is used in some tests. 2 tests were not run'),
-		''
-	].join('\n');
+		'\n  ' + chalk.green('1 test passed') + time,
+		'\n',
+		'\n  ' + colors.information('The .only() modifier is used in some tests. 2 tests were not run'),
+		'\n'
+	].join('');
 
 	t.is(output, expectedOutput);
 	t.end();
@@ -782,13 +838,11 @@ test('result when no-color flag is set', t => {
 
 	const output = reporter.finish(runStatus);
 	const expectedOutput = [
-		'',
-		'  1 test passed [17:19:12]',
-		'',
-		'',
-		'  The .only() modifier is used in some tests. 2 tests were not run',
-		''
-	].join('\n');
+		'\n  1 test passed [17:19:12]',
+		'\n',
+		'\n  The .only() modifier is used in some tests. 2 tests were not run',
+		'\n'
+	].join('');
 
 	t.is(output, expectedOutput);
 	t.end();
