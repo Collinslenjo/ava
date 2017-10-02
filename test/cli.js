@@ -75,6 +75,14 @@ test('disallow invalid babel config shortcuts', t => {
 	});
 });
 
+test('enabling long stack traces will provide detailed debug information', t => {
+	execCli('fixture/long-stack-trace', (err, stdout, stderr) => {
+		t.ok(err);
+		t.match(stderr, /From previous event/);
+		t.end();
+	});
+});
+
 test('timeout', t => {
 	execCli(['fixture/long-running.js', '-T', '1s'], (err, stdout, stderr) => {
 		t.ok(err);
@@ -799,6 +807,22 @@ test('--color enables formatting colors', t => {
 	execCli(['--color', '--verbose', 'formatting-color.js'], {dirname: 'fixture'}, (err, stdout, stderr) => {
 		t.ok(err);
 		t.isNot(stripAnsi(stderr), stderr);
+		t.end();
+	});
+});
+
+test('sets NODE_ENV to test when it is not set', t => {
+	execCli([path.join('fixture', 'node-env-test.js')], {env: {}}, (err, stdout, stderr) => {
+		t.ifError(err);
+		t.match(stderr, /1 passed/);
+		t.end();
+	});
+});
+
+test('doesn\'t set NODE_ENV when it is set', t => {
+	execCli([path.join('fixture', 'node-env-foo.js')], {env: {NODE_ENV: 'foo'}}, (err, stdout, stderr) => {
+		t.ifError(err);
+		t.match(stderr, /1 passed/);
 		t.end();
 	});
 });

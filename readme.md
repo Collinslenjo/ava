@@ -69,18 +69,18 @@ test(t => {
 
 ### Add AVA to your project
 
-Install AVA globally and run it with `--init` to add AVA to your `package.json`. [Yarn](https://yarnpkg.com/) currently provides significant speed improvements over npm during the installation process. Consider [using Yarn](https://yarnpkg.com/en/docs/install) if the installation is too slow for your needs.
+Install AVA globally and run it with `--init` to add AVA to your `package.json`.
 
-
-```console
-$ yarn global add ava
-$ ava --init
-```
-
-If you prefer using npm:
 
 ```console
 $ npm install --global ava
+$ ava --init
+```
+
+If you prefer using Yarn:
+
+```console
+$ yarn global add ava
 $ ava --init
 ```
 
@@ -105,13 +105,13 @@ Any arguments passed after `--init` are added as config to `package.json`.
 You can also install AVA directly:
 
 ```console
-$ yarn add --dev ava
+$ npm install --save-dev ava
 ```
 
-Alternatively using npm:
+Alternatively using Yarn:
 
 ```console
-$ npm install --save-dev ava
+$ yarn add --dev ava
 ```
 
 You'll have to configure the `test` script in your `package.json` to use `ava` (see above).
@@ -1126,6 +1126,8 @@ t.true(a.test(b) || b === c)
 ## Process isolation
 
 Each test file is run in a separate Node.js process. This allows you to change the global state or overriding a built-in in one test file, without affecting another. It's also great for performance on modern multi-core processors, allowing multiple test files to execute in parallel.
+
+AVA will set `process.env.NODE_ENV` to `test`, unless the `NODE_ENV` environment variable has been set. This is useful if the code you're testing has test defaults (for example when picking what database to connect to, or environment-specific Babel options). It may cause your code or its dependencies to behave differently though. Note that `'NODE_ENV' in process.env` will always be `true`.
 
 ## Tips
 
