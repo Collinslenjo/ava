@@ -4,6 +4,7 @@ Translations: [Español](https://github.com/avajs/ava-docs/blob/master/es_ES/doc
 
 AVA comes bundled with a TypeScript definition file. This allows developers to leverage TypeScript for writing tests.
 
+
 ## Setup
 
 First install [TypeScript](https://github.com/Microsoft/TypeScript) (if you already have it installed, make sure you use version 2.1 or greater).
@@ -12,14 +13,14 @@ First install [TypeScript](https://github.com/Microsoft/TypeScript) (if you alre
 $ npm install --save-dev typescript
 ```
 
-Create a [`tsconfig.json`](https://github.com/Microsoft/TypeScript/wiki/tsconfig.json) file. This file specifies the compiler options required to compile the project or the test file.
+Create a [`tsconfig.json`](http://www.typescriptlang.org/docs/handbook/tsconfig-json.html) file. This file specifies the compiler options required to compile the project or the test file.
 
 ```json
 {
 	"compilerOptions": {
 		"module": "commonjs",
 		"target": "es2015",
-		"sourceMaps": true
+		"sourceMap": true
 	}
 }
 ```
@@ -48,6 +49,7 @@ test(async (t) => {
 	t.is(await fn(), 'foo');
 });
 ```
+
 
 ## Working with [`context`](https://github.com/avajs/ava#test-context)
 
@@ -78,6 +80,7 @@ test('an actual test', t => {
 	t.deepEqual(t.context.foo.map(c => c), ['b', 'a', 'r']); // error: Property 'map' does not exist on type 'string'
 });
 ```
+
 
 ## Execute the tests
 
